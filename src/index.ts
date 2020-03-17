@@ -4,7 +4,6 @@ import * as inquirer from 'inquirer';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as shell from 'shelljs';
-import * as template from './utils/template';
 import chalk from 'chalk';
 import * as yargs from 'yargs';
 
@@ -49,23 +48,27 @@ inquirer.prompt(QUESTIONS)
 
     let userAnswers = Object.assign({}, answers, yargs.argv);
 
-    const projectName = userAnswers['name'];
+    var projectName = userAnswers['name'];
+    projectName = projectName.replace(/[^a-zA-Z]/g, "")
     const templatePath = path.join(__dirname, '../template');
-    const targetPath = path.join(CURR_DIR, projectName);
+    let targetPath = path.join(CURR_DIR);
     const templateConfig = getTemplateConfig(templatePath);
 
-    const options: CliOptions = {
+    var options: CliOptions = {
       projectName,
       templatePath,
       targetPath,
       config: templateConfig
     }
 
-    if (!createProject(targetPath)) {
+    if (!preProcess(options)) {
       return;
     }
 
     createDirectoryContents(templatePath, projectName, templateConfig);
+
+    targetPath = path.join(CURR_DIR, projectName);
+    options.targetPath = targetPath;
 
     if (!postProcess(options)) {
       return;
@@ -112,21 +115,6 @@ const getTemplateConfig = (templatePath: string): TemplateConfig => {
 }
 
 /**
- * creates project
- * @param projectPath project path
- * @returns true if folder does not already exist
- */
-const createProject = (projectPath: string) => {
-  if (fs.existsSync(projectPath)) {
-    console.log(chalk.red(`Folder ${projectPath} exists. Delete or use another name.`));
-    return false;
-  }
-
-  fs.mkdirSync(projectPath);
-  return true;
-}
-
-/**
  * applies post processes for node
  * @param options cli options
  */
@@ -154,18 +142,61 @@ const isNode = (options: CliOptions) => {
 const postProcessNode = (options: CliOptions) => {
   shell.cd(options.targetPath);
 
-  let cmd = '';
+  // cleaning unnecessary folder / file
+  deleteDirectory(options.targetPath + "/template")
+  fs.unlinkSync(options.targetPath + "/App.js")
 
-  if (shell.which('yarn')) {
-    cmd = 'yarn';
-  } else if (shell.which('npm')) {
-    cmd = 'npm install';
-  }
+  let cmd = 'npm install';
+
 
   if (cmd) {
     const result = shell.exec(cmd);
 
-    if (result.code !== 0) {
+    if (result.code === 0) {
+      cmd = "react-native link"
+      const upgrade = shell.exec(cmd);
+      if (upgrade.code !== 0) {
+        return false;
+      }
+    } else {
+      return false;
+    }
+  } else {
+    console.log(chalk.red('No yarn or npm found. Cannot run installation.'));
+  }
+
+  return true;
+}
+
+const deleteDirectory = (path: string) => {
+  if( fs.existsSync(path) ) {
+    fs.readdirSync(path).forEach(function(file,index){
+      var curPath = path + "/" + file;
+      if(fs.lstatSync(curPath).isDirectory()) { // recurse
+        deleteDirectory(curPath);
+      } else { // delete file
+        fs.unlinkSync(curPath);
+      }
+    });
+    fs.rmdirSync(path);
+  }
+};
+
+const preProcess = (options: CliOptions) => {
+  shell.cd(options.targetPath);
+
+  let cmd = 'npm i -g react-native-cli';
+
+  if (cmd) {
+    const result = shell.exec(cmd);
+
+    if (result.code === 0) {
+      cmd = "npx react-native init " + options.projectName + " --template typescript  --version react-native@0.61.5"
+      const upgrade = shell.exec(cmd);
+      if (upgrade.code !== 0) {
+        return false;
+      }
+    } else {
       return false;
     }
   } else {
@@ -198,7 +229,7 @@ const createDirectoryContents = (templatePath: string, projectName: string, conf
     if (stats.isFile()) {
       let contents = fs.readFileSync(origFilePath, 'utf8');
 
-      contents = template.render(contents, { projectName });
+      contents = contents.replace(/graphqlboilerplate/gi, projectName);
 
       const writePath = path.join(CURR_DIR, projectName, file);
       fs.writeFileSync(writePath, contents, 'utf8');

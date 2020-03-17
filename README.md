@@ -64,7 +64,7 @@ GRAPHQL_URL: "{{GRAPHQL API URL}}"
 
 And that's all, start the client
 ```sh
-$ npm start
+$ react-native run-android
 ```
 
 ## `Documentation for the Generator Project`
@@ -74,7 +74,7 @@ $ npm start
 
 ### Plugins
 
-**express-generator-rtmag** is currently extended with the following plugins. Instructions on how to use them in your own application are linked below.
+**express-generator-rntag** is currently extended with the following plugins. Instructions on how to use them in your own application are linked below.
 
 | Plugin | Usage |
 | ------ | ------ |
@@ -87,12 +87,12 @@ $ npm start
 
 
 ### Installation
-**express-generator-ntagm** requires [Node.js] v10+ to run.
+**express-generator-rntag** requires [Node.js] v10+ to run.
 
 Install the dependencies and devDependencies and start the application.
 
 ```sh
-$ cd express-generator-node-typescript-apollo-graphql-mongo
+$ cd express-generator-react-native-typescript-apollo-graphql
 $ npm install
 $ npm start
 ```
@@ -105,7 +105,7 @@ $ npm install -g .
 
 And global usage:
 ```sh
-$ express-generator-rtmag --name="PROJECT_NAME"
+$ express-generator-rntag --name="PROJECT_NAME"
 ```
 
 # `Authors`
